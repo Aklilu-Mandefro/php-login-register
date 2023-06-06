@@ -3,7 +3,7 @@ PHP-Login
 
 A simple login and register system with PHP, MySQL and jQuery (AJAX) using Bootstrap 3 for the form design.
 
-<img src="https://github.com/Aklilu-Mandefro/php-login-register/raw/master/images/screenshot.png" alt="Login-Register Page Screenshot" />
+<img src="https://i.imgur.com/02fs8KV.png" alt="Login-Register Page Screenshot" />
 
 ### Creating the Database
 
