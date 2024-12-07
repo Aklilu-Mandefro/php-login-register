@@ -1,44 +1,51 @@
 <?php
-	
-	ob_start();
-	session_start();
-	include_once 'config.php';
 
-	// Connect to server and select databse.
-	mysql_connect("$host", "$username", "$password")or die("cannot connect");
-	mysql_select_db("$db_name")or die("cannot select DB");
+ob_start();
+session_start();
+include_once 'config.php';
 
+// Connect to server and select database using mysqli
+$mysqli = new mysqli($host, $username, $password, $db_name);
 
-	$value = isset($_POST['myemail']) ? $_POST['myemail'] : '';
-	// Define $myusername and $mypassword 
-	$myemail = $value;
-	$mypassword = $_POST['mypassword']; 
-	// To protect MySQL injection
-	$myusername = stripslashes($myemail);
-	$mypassword = stripslashes($mypassword);
-	$myusername = mysql_real_escape_string($myusername);
-	$mypassword = mysql_real_escape_string($mypassword);
-	$mypassword = sha1($mypassword.$salt);
+if ($mysqli->connect_error) {
+    die("Connection failed: " . $mysqli->connect_error);
+}
 
-	$sql="SELECT * FROM $tbl_name WHERE email='$myusername' and password='$mypassword'";
-	$result=mysql_query($sql);
+$value = isset($_POST['myemail']) ? $_POST['myemail'] : '';
+$myemail = $mysqli->real_escape_string($value);
+$mypassword = isset($_POST['mypassword']) ? $_POST['mypassword'] : '';
 
-	// rowCount() is counting table row
-	$count=mysql_num_rows($result);
-	$row = mysql_fetch_array($result,MYSQL_ASSOC);
-	// If result matched $myusername and $mypassword, table row must be 1 row
-	if($count == 1){
+// Protect against SQL injection by escaping user input
+$myemail = stripslashes($myemail);
+$mypassword = stripslashes($mypassword);
 
-		// Register $myusername, $mypassword and print "true"
-		echo "true";
-		$_SESSION['username'] = $row['username'];
-		$_SESSION['password'] = 'mypassword';
-		
-	}
-	else {
-		//return the error message
-		echo "<div class=\"alert alert-danger alert-dismissable\"><button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">&times;</button>Wrong Username or Password</div>";
-	}
+// Hash the password using SHA1 and a salt
+$mypassword = sha1($mypassword . $salt);
 
-	ob_end_flush();
+// Prepare and execute the SQL query
+$sql = "SELECT * FROM $tbl_name WHERE email = ? AND password = ?";
+$stmt = $mysqli->prepare($sql);
+$stmt->bind_param('ss', $myemail, $mypassword);
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Check if the query returned exactly one row
+if ($result->num_rows == 1) {
+    $row = $result->fetch_assoc();
+
+    // Start the session and set session variables
+    $_SESSION['username'] = $row['username'];
+    $_SESSION['password'] = $mypassword;
+    
+    echo "true"; // Successful login
+} else {
+    // Return an error message
+    echo "<div class=\"alert alert-danger alert-dismissable\"><button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">&times;</button>Wrong Username or Password</div>";
+}
+
+// Close the prepared statement and connection
+$stmt->close();
+$mysqli->close();
+
+ob_end_flush();
 ?>
